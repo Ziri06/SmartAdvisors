@@ -72,6 +72,9 @@ PREREQ_PATCHES = {
     # ── CSE 4378 (Unmanned Vehicle Systems) — real course, needs senior CSE prereq ──
     ('ClassesForCSE', 'CSE 4378'): ('CSE 3310', None),
     # CSE 4379 already requires CSE 4378, so that chain is fine.
+
+    # ── CSE 4314 (Professional Practices senior) — must require CSE 3314 first ──
+    ('ClassesForCSE', 'CSE 4314'): ('CSE 3314', None),
 }
 
 
