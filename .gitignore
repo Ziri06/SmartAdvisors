@@ -18,3 +18,7 @@ build/
 
 *.db
 *.sqlite
+
+# Claude Code (local only - not for GitHub)
+.claude/
+CLAUDE.md

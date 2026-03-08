@@ -176,58 +176,41 @@ def get_recommendations():
         # 3. LOGIC ENGINE
         all_courses = get_department_courses(department)
         eligible = filter_eligible_courses_unique(all_courses, completed_courses)
-        
-        result = []
-        for code, course in eligible.items():
+
+        def build_course_result(code, course):
+            """Build recommendation dict for one course with professor data."""
             offerings = get_professor_offerings_for_course(code)
-            
             professors_list = []
             seen = set()
-            
             for offer in offerings:
                 for prof_name in offer['instructors']:
-                    
-                    # CLEANUP: Skip "Staff" or "TBA" placeholders
                     if not prof_name or prof_name.lower() in ['staff', 'tba', 'unknown']:
                         continue
-
                     if prof_name not in seen:
                         seen.add(prof_name)
-                        
                         try:
-                            # --- ROBUST NAME MATCHING ---
                             db_prof = Professor.query.filter(Professor.name.ilike(prof_name)).first()
-                            
-                            # Swap Check: "Smith, John" -> "John Smith"
                             if not db_prof and ',' in prof_name:
                                 parts = prof_name.split(',')
                                 if len(parts) >= 2:
                                     swapped = f"{parts[1].strip()} {parts[0].strip()}"
                                     db_prof = Professor.query.filter(Professor.name.ilike(swapped)).first()
-                            
-                            # Fuzzy Last Name Check
                             if not db_prof:
                                 parts = prof_name.replace(',', '').split()
                                 if len(parts) > 0:
                                     last_name = parts[0] if ',' in prof_name else parts[-1]
                                     db_prof = Professor.query.filter(Professor.name.ilike(f"%{last_name}%")).first()
-
-                            # CALCULATE SCORE
                             match_score = calculate_match_score(db_prof, user_prefs)
-                            
-                            # GET DATA (Safe defaults)
                             final_rating = 0.0
-                            if db_prof and db_prof.rating is not None: 
+                            if db_prof and db_prof.rating is not None:
                                 try: final_rating = float(db_prof.rating)
                                 except: final_rating = 0.0
                             else:
                                 try: final_rating = round(float(offer.get('course_gpa', 0) or 0), 1)
                                 except: final_rating = 0.0
-                            
                             final_tags = []
                             if db_prof and db_prof.tags:
                                 final_tags = str(db_prof.tags).split(',')
-
                             final_difficulty = "Moderate"
                             if db_prof and db_prof.difficulty:
                                 try:
@@ -235,7 +218,6 @@ def get_recommendations():
                                     if diff_val < 2.5: final_difficulty = "Easy"
                                     elif diff_val > 3.8: final_difficulty = "Hard"
                                 except: pass
-
                             professors_list.append({
                                 'id': str(len(professors_list)),
                                 'name': prof_name,
@@ -249,17 +231,25 @@ def get_recommendations():
                         except Exception as inner_e:
                             print(f"Skipping prof {prof_name}: {inner_e}", file=sys.stderr)
                             continue
-            
-            # Sort by Match Score (Highest First)
             professors_list.sort(key=lambda x: x['matchScore'], reverse=True)
-            
-            result.append({
-                'courseCode': code, 
-                'courseName': course['Course_Name'], 
-                'professors': professors_list
-            })
-        
-        return jsonify({'success': True, 'recommendations': result}), 200
+            return {'courseCode': code, 'courseName': course['Course_Name'], 'professors': professors_list}
+
+        # Partition eligible courses into required vs elective
+        required_result = []
+        elective_result = []
+        for code, course in eligible.items():
+            req_type = (course.get('Requirement') or 'required').strip().lower()
+            entry = build_course_result(code, course)
+            if req_type == 'elective':
+                elective_result.append(entry)
+            else:
+                required_result.append(entry)
+
+        return jsonify({
+            'success': True,
+            'recommendations': required_result,
+            'electiveRecommendations': elective_result,
+        }), 200
         
     except Exception as e:
         traceback.print_exc(file=sys.stderr)
