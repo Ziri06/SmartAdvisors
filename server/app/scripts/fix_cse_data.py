@@ -16,7 +16,7 @@ def normalize_code(code):
 
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    db_path = os.path.abspath(os.path.join(script_dir, '../../../data/classes.db'))
+    db_path = os.path.abspath(os.path.join(script_dir, '../../data/classes.db'))
 
     if not os.path.exists(db_path):
         print(f"ERROR: classes.db not found at {db_path}")

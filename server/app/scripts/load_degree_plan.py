@@ -1,10 +1,10 @@
 """
 load_degree_plan.py — Reusable script to load a degree plan CSV into classes.db.
 
-Creates or replaces a ClassesFor{DEPT} table in data/classes.db.
+Creates or replaces a ClassesFor{DEPT} table in server/data/classes.db.
 
 CSV format (must have these columns):
-    Formal Name, Course Name, Prerequisites, Corequisites
+    Formal Name, Course Name, Prerequisites, Corequisites, Requirement
 
 Prerequisites/Corequisites can be:
   - [None]                  → stored as empty string
@@ -86,9 +86,12 @@ def load_csv_to_db(dept_code, csv_path, db_path):
             course_name = row.get('Course Name', '').strip()
             prereqs     = parse_req_field(row.get('Prerequisites', ''))
             coreqs      = parse_req_field(row.get('Corequisites', ''))
+            requirement = row.get('Requirement', 'required').strip().lower()
+            if requirement not in ('required', 'elective'):
+                requirement = 'required'
             if not course_num:
                 continue
-            rows.append((course_num, course_name, prereqs, coreqs, ''))
+            rows.append((course_num, course_name, prereqs, coreqs, '', requirement))
 
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
@@ -101,10 +104,11 @@ def load_csv_to_db(dept_code, csv_path, db_path):
             Course_Name   TEXT,
             Pre_Requisites TEXT,
             Co_Requisites  TEXT,
-            Description    TEXT
+            Description    TEXT,
+            Requirement    TEXT DEFAULT 'required'
         )
     ''')
-    cur.executemany(f'INSERT INTO [{table_name}] VALUES (?, ?, ?, ?, ?)', rows)
+    cur.executemany(f'INSERT INTO [{table_name}] VALUES (?, ?, ?, ?, ?, ?)', rows)
     conn.commit()
     conn.close()
 
@@ -124,7 +128,7 @@ def main():
         sys.exit(1)
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    data_dir   = os.path.abspath(os.path.join(script_dir, '../../../data'))
+    data_dir   = os.path.abspath(os.path.join(script_dir, '../../data'))
     db_path    = os.path.join(data_dir, 'classes.db')
     csv_path   = os.path.join(data_dir, DEPT_TO_CSV[dept])
 

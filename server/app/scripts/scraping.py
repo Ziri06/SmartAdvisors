@@ -253,7 +253,7 @@ def find_prereqs(prerequisites, main_course_department, safe_table_name, cur):
 
 def insert_courses(html_content, department):
     
-    db_path = "SmartAdvisors/data/classes.db"
+    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data/classes.db')
     
     db = sqlite3.connect(db_path)
     cur = db.cursor()

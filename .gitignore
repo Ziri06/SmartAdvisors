@@ -16,5 +16,13 @@ build/
 # Environment Variables (Keep secrets safe!)
 .env
 
+# Ignore random database files, but track the ones the app needs
 *.db
 *.sqlite
+!server/data/classes.db
+!server/data/grades.sqlite
+!server/data/professors.db
+
+# Claude Code (local only - not for GitHub)
+.claude/
+CLAUDE.md

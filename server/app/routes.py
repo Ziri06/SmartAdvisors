@@ -253,13 +253,30 @@ def get_recommendations():
             # Sort by Match Score (Highest First)
             professors_list.sort(key=lambda x: x['matchScore'], reverse=True)
             
-            result.append({
-                'courseCode': code, 
-                'courseName': course['Course_Name'], 
+            entry = {
+                'courseCode': code,
+                'courseName': course['Course_Name'],
                 'professors': professors_list
-            })
-        
-        return jsonify({'success': True, 'recommendations': result}), 200
+            }
+            # Tag with requirement type for partitioning
+            entry['_requirement'] = course.get('Requirement', 'required')
+            result.append(entry)
+
+        # Partition into required vs elective
+        required = []
+        electives = []
+        for r in result:
+            req_type = r.pop('_requirement', 'required')
+            if req_type == 'elective':
+                electives.append(r)
+            else:
+                required.append(r)
+
+        return jsonify({
+            'success': True,
+            'recommendations': required,
+            'electiveRecommendations': electives
+        }), 200
         
     except Exception as e:
         traceback.print_exc(file=sys.stderr)

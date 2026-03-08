@@ -11,7 +11,13 @@ if os.path.exists(dotenv_path):
     load_dotenv(dotenv_path)
     print(f"Loaded .env from: {dotenv_path}")
 else:
-    print("Warning: .env file not found!")
+    print("No .env file found, using defaults.")
+
+# 3. Auto-set professors.db path if not configured (works on any machine)
+if not os.environ.get('SQLALCHEMY_DATABASE_URI') and not os.environ.get('DATABASE_URL'):
+    db_path = os.path.join(basedir, 'data', 'professors.db')
+    os.environ['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+    print(f"Using professors.db at: {db_path}")
 
 from app import create_app
 

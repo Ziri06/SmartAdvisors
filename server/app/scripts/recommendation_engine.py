@@ -4,7 +4,7 @@ from .parse_transcript import extract_all_courses
 
 def get_department_courses(department):
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    db_path = os.path.abspath(os.path.join(script_dir, '../../../data/classes.db'))
+    db_path = os.path.abspath(os.path.join(script_dir, '../../data/classes.db'))
     if not os.path.exists(db_path):
         raise FileNotFoundError(f"Database file not found at {db_path}")
     conn = sqlite3.connect(db_path)
@@ -99,7 +99,7 @@ def filter_eligible_courses_unique(all_courses, completed_courses):
 def get_professor_offerings_for_course(course_code):
     # Looks in all tables for offerings of the given course code (subject_id + course_number)
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    db_path = os.path.abspath(os.path.join(script_dir, '../../../data/grades.sqlite'))
+    db_path = os.path.abspath(os.path.join(script_dir, '../../data/grades.sqlite'))
     if not os.path.exists(db_path):
         raise FileNotFoundError(f"Grades DB file not found at {db_path}")
     conn = sqlite3.connect(db_path)
@@ -122,7 +122,7 @@ def get_professor_offerings_for_course(course_code):
                     'course_title': row[2],
                     'year': row[3],
                     'semester': row[4],
-                    'course_gpa': row[9],
+                    'course_gpa': row[10],
                     'instructors': [iname for iname in row[5:10] if iname and str(iname).strip() and str(iname).strip().lower() != 'none']
                 })
         except Exception:
@@ -155,7 +155,7 @@ def run_local_demo():
     print(f"Loaded {len(all_courses)} course/professor offerings for {dept} department.")
     
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    pdf_path = os.path.abspath(os.path.join(script_dir, '../../../data/sample_transcript.pdf'))
+    pdf_path = os.path.abspath(os.path.join(script_dir, '../../data/sample_transcript.pdf'))
     
     if not os.path.exists(pdf_path):
         print(f"PDF transcript not found at: {pdf_path}")
