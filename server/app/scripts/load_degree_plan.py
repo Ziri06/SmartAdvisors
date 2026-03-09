@@ -28,6 +28,8 @@ import sqlite3
 
 
 DEPT_TO_CSV = {
+    'CE':  'CE Degree Plan CSV.csv',
+    'CSE': 'CSE Degree Plan CSV.csv',
     'EE':  'EE Degree Plan CSV.csv',
     'MAE': 'MAE Degree Plan CSV.csv',
     'IE':  'IE Degree Plan CSV.csv',
@@ -86,12 +88,20 @@ def load_csv_to_db(dept_code, csv_path, db_path):
             course_name = row.get('Course Name', '').strip()
             prereqs     = parse_req_field(row.get('Prerequisites', ''))
             coreqs      = parse_req_field(row.get('Corequisites', ''))
-            requirement = row.get('Requirement', 'required').strip().lower()
+            requirement = (row.get('Requirement') or 'required').strip().lower()
             if requirement not in ('required', 'elective'):
                 requirement = 'required'
             if not course_num:
                 continue
-            rows.append((course_num, course_name, prereqs, coreqs, '', requirement))
+            # Credit hours: use CSV column if present, else extract from course number 2nd digit
+            raw_hours = row.get('CreditHours', '').strip()
+            if raw_hours and raw_hours.isdigit():
+                credit_hours = int(raw_hours)
+            else:
+                # UTA convention: 2nd digit of course number = credit hours (e.g., CSE 1310 → 3)
+                num_part = course_num.split()[-1] if ' ' in course_num else course_num
+                credit_hours = int(num_part[1]) if len(num_part) >= 2 and num_part[1].isdigit() else 3
+            rows.append((course_num, course_name, prereqs, coreqs, '', credit_hours, requirement))
 
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
@@ -105,10 +115,11 @@ def load_csv_to_db(dept_code, csv_path, db_path):
             Pre_Requisites TEXT,
             Co_Requisites  TEXT,
             Description    TEXT,
+            Credit_Hours   INTEGER DEFAULT 3,
             Requirement    TEXT DEFAULT 'required'
         )
     ''')
-    cur.executemany(f'INSERT INTO [{table_name}] VALUES (?, ?, ?, ?, ?, ?)', rows)
+    cur.executemany(f'INSERT INTO [{table_name}] VALUES (?, ?, ?, ?, ?, ?, ?)', rows)
     conn.commit()
     conn.close()
 

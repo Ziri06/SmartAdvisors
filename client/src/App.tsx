@@ -15,6 +15,7 @@ interface ApiRecommendationResponse {
   success: boolean;
   recommendations: any[];
   electiveRecommendations?: any[];
+  stats?: any;
 }
 
 function App() {
@@ -96,7 +97,7 @@ function App() {
   if (step === 1) return <Layout onLogoClick={() => setStep(0)}><UploadScreen file={file} department={department} onFileChange={handleFileChange} setDepartment={setDepartment} onNext={handleUploadAndParse} onBack={() => setStep(0)} /></Layout>;
   if (step === 2) return <Layout onLogoClick={() => setStep(0)}><TranscriptReview courses={completedCourses} onNext={() => setStep(3)} onBack={() => setStep(1)} /></Layout>;
   if (step === 3) return <Layout onLogoClick={() => setStep(0)}><PreferenceForm onGenerateSchedule={handleGenerate} isLoading={isLoading} onBack={() => setStep(2)} /></Layout>;
-  if (step === 4 && apiData && userPrefs) return <Layout onLogoClick={() => setStep(0)}><RecommendationDashboard userData={{ preferences: userPrefs, recommendations: apiData.recommendations, electiveRecommendations: apiData.electiveRecommendations || [] }} onBack={() => setStep(3)} /></Layout>;
+  if (step === 4 && apiData && userPrefs) return <Layout onLogoClick={() => setStep(0)}><RecommendationDashboard userData={{ preferences: userPrefs, recommendations: apiData.recommendations, electiveRecommendations: apiData.electiveRecommendations || [], stats: apiData.stats }} onBack={() => setStep(3)} /></Layout>;
 
   return <div>Loading...</div>;
 }

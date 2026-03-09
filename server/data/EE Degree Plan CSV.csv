@@ -46,6 +46,10 @@ EE 4391,Electrical Engineering Senior Design I,"EE 3310, EE 3340, EE 3330",[None
 EE 4392,Electrical Engineering Senior Design II,EE 4391,[None],required
 EE 43XX,EE Technical Elective (1),[None],[None],required
 EE 43XX,EE Technical Elective (2),[None],[None],required
+EE 43XX,EE Technical Elective (3),[None],[None],required
+EE 43XX,EE Technical Elective (4),[None],[None],required
+ENGR 4XXX,Engineering Elective,[None],[None],required
+MATH 3XXX,Math/Science Elective (3000+ level),[None],[None],required
 IE 2308,Engineering Economy,[None],MATH 1426,required
 LPC XXXX,Language Philosophy and Culture Elective,[None],[None],required
 CA XXXX,Creative Arts Elective,[None],[None],required

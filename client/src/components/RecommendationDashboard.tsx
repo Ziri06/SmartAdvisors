@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Star, TrendingUp, BookOpen, Loader2, Sparkles, ArrowLeft, Trophy, Download } from 'lucide-react';
+import { Star, TrendingUp, BookOpen, Loader2, Sparkles, ArrowLeft, Trophy, Download, ChevronDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 type PreferencesType = {
@@ -32,7 +32,21 @@ interface Professor {
 interface ClassData {
   courseCode: string;
   courseName: string;
+  creditHours?: number;
+  corequisites?: string;
   professors: Professor[];
+}
+
+interface ProgressStats {
+  totalRequiredCourses: number;
+  totalRequiredHours: number;
+  completedRequiredCourses: number;
+  completedRequiredHours: number;
+  totalElectiveSlots: number;
+  totalElectiveHours: number;
+  completedElectives: number;
+  completedElectiveHours: number;
+  remainingElectiveSlots: number;
 }
 
 interface RecommendationDashboardProps {
@@ -40,6 +54,7 @@ interface RecommendationDashboardProps {
     preferences: PreferencesType;
     recommendations: ClassData[];
     electiveRecommendations?: ClassData[];
+    stats?: ProgressStats;
   };
   onBack: () => void;
 }
@@ -60,7 +75,14 @@ function CourseCard({ classData, index, getDifficultyColor, getTagStyle, accentC
     >
       <div className="px-6 py-5 border-b border-white/10 flex-shrink-0" style={{ background: `${accentColor}15` }}>
         <div className="flex justify-between items-center mb-1">
-          <h3 className="text-xl font-bold text-white">{classData.courseCode}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-xl font-bold text-white">{classData.courseCode}</h3>
+            {classData.creditHours && (
+              <span className="text-xs font-bold text-white/70 bg-white/10 px-2 py-0.5 rounded-full border border-white/10">
+                {classData.creditHours} hrs
+              </span>
+            )}
+          </div>
           <span className="text-xs font-bold text-white px-2 py-1 rounded-full border border-white/10" style={{ background: accentColor }}>
             {classData.professors.length} Options
           </span>
@@ -68,6 +90,11 @@ function CourseCard({ classData, index, getDifficultyColor, getTagStyle, accentC
         <p className="text-white/60 font-medium text-sm truncate" title={classData.courseName}>
           {classData.courseName}
         </p>
+        {classData.corequisites && (
+          <p className="text-amber-400/70 text-xs mt-1 font-medium">
+            Co-req: {classData.corequisites}
+          </p>
+        )}
       </div>
       <div className="overflow-y-auto p-4 space-y-4 custom-scrollbar flex-grow print-prof-list">
         {classData.professors.map((professor, profIndex) => {
@@ -404,13 +431,23 @@ export default function RecommendationDashboard({ userData, onBack }: Recommenda
           {/* REQUIRED COURSES SECTION */}
           {visibleClasses.length > 0 && (
             <div className="mb-14">
-              <div className="flex items-center gap-3 mb-6">
+              <div className="flex items-center gap-3 mb-2">
                 <div className="bg-[#0046FF] p-2 rounded-xl">
                   <BookOpen className="w-5 h-5 text-white" />
                 </div>
                 <h3 className="text-2xl font-bold text-white">Required Courses</h3>
                 <span className="text-sm font-bold text-white/50 bg-white/10 px-3 py-1 rounded-full">{visibleClasses.length} courses</span>
               </div>
+              {userData.stats && (
+                <p className="text-white/50 text-sm ml-12 mb-1">
+                  Completed <span className="text-white font-bold">{userData.stats.completedRequiredCourses}/{userData.stats.totalRequiredCourses}</span> required courses ({userData.stats.completedRequiredHours}/{userData.stats.totalRequiredHours} credit hours)
+                </p>
+              )}
+              {visibleElectives.length > 0 && (
+                <p className="text-[#FF8040]/60 text-sm ml-12 mb-6 flex items-center gap-1">
+                  <ChevronDown className="w-3.5 h-3.5" /> Elective options available below
+                </p>
+              )}
               <div className="overflow-x-auto pb-6 no-scrollbar">
                 <div className="flex gap-8 min-w-min px-2 print-horizontal-container">
                   {visibleClasses.map((classData, index) => (
@@ -427,13 +464,22 @@ export default function RecommendationDashboard({ userData, onBack }: Recommenda
           {/* ELECTIVE COURSES SECTION */}
           {visibleElectives.length > 0 && (
             <div className="mb-10">
-              <div className="flex items-center gap-3 mb-6">
+              <div className="flex items-center gap-3 mb-2">
                 <div className="bg-[#FF8040] p-2 rounded-xl">
                   <Sparkles className="w-5 h-5 text-white" />
                 </div>
                 <h3 className="text-2xl font-bold text-white">Elective Options</h3>
                 <span className="text-sm font-bold text-white/50 bg-white/10 px-3 py-1 rounded-full">{visibleElectives.length} courses</span>
               </div>
+              {userData.stats && (
+                <p className="text-white/50 text-sm ml-12 mb-6">
+                  Completed <span className="text-white font-bold">{userData.stats.completedElectives}/{userData.stats.totalElectiveSlots}</span> elective slots ({userData.stats.completedElectiveHours}/{userData.stats.totalElectiveHours} credit hours)
+                  {userData.stats.remainingElectiveSlots > 0
+                    ? <> · Choose <span className="text-[#FF8040] font-bold">{userData.stats.remainingElectiveSlots}</span> more from these options</>
+                    : <> · <span className="text-emerald-400 font-bold">All elective slots filled!</span></>
+                  }
+                </p>
+              )}
               <div className="overflow-x-auto pb-6 no-scrollbar">
                 <div className="flex gap-8 min-w-min px-2 print-horizontal-container">
                   {visibleElectives.map((classData, index) => (

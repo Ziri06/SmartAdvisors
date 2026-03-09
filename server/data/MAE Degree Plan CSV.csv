@@ -43,9 +43,8 @@ MAE 4330,Advanced Aerodynamics,MAE 3330,[None],elective
 MAE 4340,Space Mechanics,MAE 3340,[None],elective
 ME 4391,Mechanical Engineering Senior Design I,"ME 3345, ME 4301",[None],required
 ME 4392,Mechanical Engineering Senior Design II,ME 4391,[None],required
-ME 43XX,ME Technical Elective (1),[None],[None],required
-ME 43XX,ME Technical Elective (2),[None],[None],required
-MAE 43XX,MAE Technical Elective (1),[None],[None],required
-MAE 43XX,MAE Technical Elective (2),[None],[None],required
+ME 43XX,ME/MAE Technical Elective (1),[None],[None],required
+ME 43XX,ME/MAE Technical Elective (2),[None],[None],required
+MAE 43XX,ME/MAE Technical Elective (3),[None],[None],required
 LPC XXXX,Language Philosophy and Culture Elective,[None],[None],required
 CA XXXX,Creative Arts Elective,[None],[None],required

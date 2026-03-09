@@ -12,7 +12,8 @@ from app.models import Professor
 from .scripts.recommendation_engine import (
     get_department_courses,
     filter_eligible_courses_unique,
-    get_professor_offerings_for_course
+    get_professor_offerings_for_course,
+    normalize_code
 )
 from .scripts.parse_transcript import extract_all_courses
 
@@ -253,9 +254,12 @@ def get_recommendations():
             # Sort by Match Score (Highest First)
             professors_list.sort(key=lambda x: x['matchScore'], reverse=True)
             
+            coreqs = course.get('Co_Requisites', '').strip()
             entry = {
                 'courseCode': code,
                 'courseName': course['Course_Name'],
+                'creditHours': course.get('Credit_Hours', 3),
+                'corequisites': coreqs if coreqs and coreqs.lower() != 'none' else '',
                 'professors': professors_list
             }
             # Tag with requirement type for partitioning
@@ -272,10 +276,43 @@ def get_recommendations():
             else:
                 required.append(r)
 
+        # Calculate progress stats
+        normalized_completed = set(normalize_code(c) for c in completed_courses)
+
+        # Required: count completed vs total (exclude XX placeholders)
+        required_courses = [c for c in all_courses if c.get('Requirement', 'required') == 'required' and 'XX' not in c['Course_Num']]
+        total_required = len(required_courses)
+        total_required_hours = sum(c.get('Credit_Hours', 3) for c in required_courses)
+        completed_required = [c for c in required_courses if normalize_code(c['Course_Num']) in normalized_completed]
+        completed_required_count = len(completed_required)
+        completed_required_hours = sum(c.get('Credit_Hours', 3) for c in completed_required)
+
+        # Electives: count technical elective slots (XX entries, excluding gen-ed like HIST/LPC/CA)
+        gen_ed_prefixes = ('HIST', 'LPC', 'CA', 'POLS', 'ENGL', 'UNIV')
+        elective_slots = [c for c in all_courses if 'XX' in c['Course_Num'] and not c['Course_Num'].startswith(gen_ed_prefixes)]
+        total_elective_slots = len(elective_slots)
+        elective_courses = [c for c in all_courses if c.get('Requirement', 'required') == 'elective']
+        completed_electives = [c for c in elective_courses if normalize_code(c['Course_Num']) in normalized_completed]
+        completed_elective_count = len(completed_electives)
+        completed_elective_hours = sum(c.get('Credit_Hours', 3) for c in completed_electives)
+        total_elective_hours = sum(c.get('Credit_Hours', 3) for c in elective_slots)
+        remaining_elective_slots = max(0, total_elective_slots - completed_elective_count)
+
         return jsonify({
             'success': True,
             'recommendations': required,
-            'electiveRecommendations': electives
+            'electiveRecommendations': electives,
+            'stats': {
+                'totalRequiredCourses': total_required,
+                'totalRequiredHours': total_required_hours,
+                'completedRequiredCourses': completed_required_count,
+                'completedRequiredHours': completed_required_hours,
+                'totalElectiveSlots': total_elective_slots,
+                'totalElectiveHours': total_elective_hours,
+                'completedElectives': completed_elective_count,
+                'completedElectiveHours': completed_elective_hours,
+                'remainingElectiveSlots': remaining_elective_slots,
+            }
         }), 200
         
     except Exception as e:
