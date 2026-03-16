@@ -107,22 +107,19 @@ cd SmartAdvisors
 
 This file holds the Google Sign-In key. It is **not** in the repo (for security), so you have to create it manually. **You only do this once.**
 
-1. Go into the `client` folder
-2. Create a new file called `.env` (exactly that name, with the dot)
-3. Paste this exact line into it (ask the team lead on Discord for the Client ID):
-
-```
-VITE_GOOGLE_CLIENT_ID=your-google-client-id-here.apps.googleusercontent.com
-```
-
-**Mac/Linux shortcut** (replace the ID with the real one):
+**Mac/Linux:**
 ```bash
-echo "VITE_GOOGLE_CLIENT_ID=your-client-id-here.apps.googleusercontent.com" > client/.env
+echo "VITE_GOOGLE_CLIENT_ID=24693373849-lj8avjqbcppv05125st5kj3q29k1u6jn.apps.googleusercontent.com" > client/.env
 ```
 
-**Windows shortcut** (in Command Prompt):
+**Windows** (Command Prompt):
 ```cmd
-echo VITE_GOOGLE_CLIENT_ID=your-client-id-here.apps.googleusercontent.com > client\.env
+echo VITE_GOOGLE_CLIENT_ID=24693373849-lj8avjqbcppv05125st5kj3q29k1u6jn.apps.googleusercontent.com > client\.env
+```
+
+Or manually create `client/.env` and paste:
+```
+VITE_GOOGLE_CLIENT_ID=24693373849-lj8avjqbcppv05125st5kj3q29k1u6jn.apps.googleusercontent.com
 ```
 
 > **Note:** Without this file, the guest flow still works — but Google Sign-In won't.
