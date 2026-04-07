@@ -592,13 +592,17 @@ def degree_plan():
                 completed_elective_hours_total += c.get('credit_hours', 3)
                 completed_elective_count += 1
 
-        # Completed core curriculum — capped per category so taking extra
-        # courses in one area doesn't inflate the count beyond the budget.
+        # Completed core curriculum — capped per category, and skip courses
+        # already counted as degree required/elective to avoid double-counting.
+        degree_course_codes = set(normalize_code(c['course_id']) for c in all_courses)
         completed_core_hours = 0
         for cat_name, cat_info in core_curriculum.items():
             cat_completed = 0
             for cc_course in cat_info['courses']:
-                if normalize_code(cc_course['course_id']) in normalized_completed:
+                code = normalize_code(cc_course['course_id'])
+                if code in degree_course_codes:
+                    continue  # already counted as required/elective
+                if code in normalized_completed:
                     cat_completed += cc_course.get('course_hours', 3)
             completed_core_hours += min(cat_completed, cat_info['hours_required'])
 
