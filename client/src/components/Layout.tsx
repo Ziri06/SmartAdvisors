@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Compass, Github, LogIn, LogOut, LayoutDashboard } from 'lucide-react';
+import { Compass, Github, LogIn, LogOut } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -7,10 +7,9 @@ interface LayoutProps {
   user?: { name: string; picture?: string } | null;
   onSignOut?: () => void;
   onSignIn?: () => void;
-  onDashboard?: () => void;
 }
 
-export default function Layout({ children, onLogoClick, user, onSignOut, onSignIn, onDashboard }: LayoutProps) {
+export default function Layout({ children, onLogoClick, user, onSignOut, onSignIn }: LayoutProps) {
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
@@ -70,14 +69,6 @@ export default function Layout({ children, onLogoClick, user, onSignOut, onSignI
                   )}
                   <span className="text-sm font-semibold text-white/70 hidden sm:block">{user.name.split(' ')[0]}</span>
                 </div>
-                {onDashboard && (
-                  <button
-                    onClick={onDashboard}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[var(--accent-purple)]/30 bg-[var(--accent-purple)]/10 hover:bg-[var(--accent-purple)]/20 hover:border-[var(--accent-purple)]/50 transition-all text-white/80 hover:text-white text-xs font-semibold"
-                  >
-                    <LayoutDashboard className="w-3.5 h-3.5" /> Dashboard
-                  </button>
-                )}
                 {onSignOut && (
                   <button
                     onClick={onSignOut}

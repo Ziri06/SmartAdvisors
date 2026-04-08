@@ -18,7 +18,7 @@ interface DashboardSidebarProps {
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, active: true },
-  { id: 'plan', label: 'Degree Plan', icon: GraduationCap, soon: true },
+  { id: 'plan', label: 'Degree Plan', icon: GraduationCap, soon: false },
   { id: 'courses', label: 'My Courses', icon: BookOpen, soon: true },
   { id: 'professors', label: 'Professors', icon: Users, soon: true },
   { id: 'settings', label: 'Settings', icon: Settings, soon: true },

@@ -241,12 +241,6 @@ function App({ googleOAuthEnabled = true }: { googleOAuthEnabled?: boolean }) {
     setStep(3);
   };
 
-  const handleGoToDashboard = () => {
-    if (isLoggedIn && degreePlan && googleUser) {
-      setIsReturningUser(true);
-      setStep(4);
-    }
-  };
 
   const handleNewTranscript = () => {
     if (googleUser) localStorage.removeItem(STORAGE_KEY(googleUser.email));
@@ -321,7 +315,7 @@ function App({ googleOAuthEnabled = true }: { googleOAuthEnabled?: boolean }) {
   }
 
   if (step === 1) return (
-    <Layout onLogoClick={handleLogoClick} user={isLoggedIn ? googleUser : undefined} onSignOut={isLoggedIn ? handleSignOut : undefined} onDashboard={isLoggedIn && degreePlan ? handleGoToDashboard : undefined}>
+    <Layout onLogoClick={handleLogoClick} user={isLoggedIn ? googleUser : undefined} onSignOut={isLoggedIn ? handleSignOut : undefined}>
       <UploadScreen
         file={file}
         department={department}
@@ -336,7 +330,7 @@ function App({ googleOAuthEnabled = true }: { googleOAuthEnabled?: boolean }) {
   );
 
   if (step === 2) return (
-    <Layout onLogoClick={handleLogoClick} user={isLoggedIn ? googleUser : undefined} onSignOut={isLoggedIn ? handleSignOut : undefined} onDashboard={isLoggedIn && degreePlan ? handleGoToDashboard : undefined}>
+    <Layout onLogoClick={handleLogoClick} user={isLoggedIn ? googleUser : undefined} onSignOut={isLoggedIn ? handleSignOut : undefined}>
       <TranscriptReview courses={completedCourses} onNext={() => setStep(3)} onBack={() => setStep(1)} />
     </Layout>
   );
@@ -347,7 +341,7 @@ function App({ googleOAuthEnabled = true }: { googleOAuthEnabled?: boolean }) {
       // Signed-in flow: collect preferences first, then show plan setup
       if (!userPrefs) {
         return (
-          <Layout onLogoClick={handleLogoClick} user={googleUser} onSignOut={handleSignOut} onDashboard={degreePlan ? handleGoToDashboard : undefined}>
+          <Layout onLogoClick={handleLogoClick} user={googleUser} onSignOut={handleSignOut}>
             <PreferenceForm
               onGenerateSchedule={(prefs) => setUserPrefs(prefs)}
               isLoading={false}
@@ -358,7 +352,7 @@ function App({ googleOAuthEnabled = true }: { googleOAuthEnabled?: boolean }) {
         );
       }
       return (
-        <Layout onLogoClick={handleLogoClick} user={googleUser} onSignOut={handleSignOut} onDashboard={degreePlan ? handleGoToDashboard : undefined}>
+        <Layout onLogoClick={handleLogoClick} user={googleUser} onSignOut={handleSignOut}>
           <DegreePlanSetup
             completedCourses={completedCourses}
             department={department}
@@ -417,7 +411,7 @@ function App({ googleOAuthEnabled = true }: { googleOAuthEnabled?: boolean }) {
     // Full semester plan view
     if (isLoggedIn && degreePlan) {
       return (
-        <Layout onLogoClick={handleLogoClick} user={googleUser} onSignOut={handleSignOut} onDashboard={handleGoToDashboard}>
+        <Layout onLogoClick={handleLogoClick} user={googleUser} onSignOut={handleSignOut}>
           <SemesterPlanView
             plan={degreePlan}
             onBack={() => setStep(3)}
