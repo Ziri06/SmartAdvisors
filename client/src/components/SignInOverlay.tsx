@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Compass, Star, ArrowRight } from 'lucide-react';
 import { useGoogleLogin } from '@react-oauth/google';

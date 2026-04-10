@@ -39,7 +39,7 @@ interface DegreePlanSetupProps {
   onBack: () => void;
 }
 
-const API_URL = 'http://127.0.0.1:8000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 const CREDIT_OPTIONS = [12, 13, 14, 15, 16, 17, 18];
 const SEMESTER_OPTIONS = ['Fall', 'Spring', 'Summer'];
 const currentYear = new Date().getFullYear();

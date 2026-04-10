@@ -191,7 +191,7 @@ export default function UploadScreen({
                 </div>
                 <div>
                   <h4 className="text-[13px] font-semibold text-[var(--green)] mb-0.5">100% Private</h4>
-                  <p className="text-[12px] font-normal text-[var(--sub)]">Processed locally in your browser. We never store or share your academic data.</p>
+                  <p className="text-[12px] font-normal text-[var(--sub)]">Processed securely to generate your recommendations. We do not display any sharing or storage step in this flow.</p>
                 </div>
               </div>
             </div>

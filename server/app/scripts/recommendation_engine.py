@@ -25,12 +25,17 @@ def catalog_degree_id(department):
 
 def parse_prereq_string(raw):
     """
-    Parse a prerequisites/corequisites string into a list of normalized course codes.
+    Parse a prerequisites/corequisites string into a list of prerequisite entries.
+
+    Each entry is either:
+      - A single normalized course code: 'CSE 1310'
+      - An OR-group string: 'CSE 3380 or MATH 3330'  (any one satisfies the requirement)
 
     Handles:
       - '' or None or 'None'          → []
       - 'EE 2310, PHYS 1444'          → ['EE 2310', 'PHYS 1444']
       - "['CSE 1310', 'CSE 1320']"    → ['CSE 1310', 'CSE 1320']
+      - "['IE 3301 or MATH 3313', 'CSE 3318']" → ['IE 3301 or MATH 3313', 'CSE 3318']
     """
     if not raw:
         return []
@@ -42,9 +47,50 @@ def parse_prereq_string(raw):
         inner = stripped[1:-1]
         codes = [c.strip().strip("'\"") for c in inner.split(',') if c.strip()]
         codes = [c for c in codes if c.lower() != 'none' and c]
-        return [normalize_code(c) for c in codes]
+        # Normalize each entry — but preserve OR groups as-is (just normalize spacing)
+        result = []
+        for c in codes:
+            if ' or ' in c.lower():
+                # OR group — normalize each alternative inside
+                alts = [normalize_code(a.strip()) for a in c.split(' or ')]
+                result.append(' or '.join(alts))
+            else:
+                result.append(normalize_code(c))
+        return result
     # Plain comma-separated
     return [normalize_code(p) for p in stripped.split(',') if p.strip()]
+
+
+def _is_prereq_met(prereq_entry, completed, course_map):
+    """
+    Check if a single prerequisite entry is satisfied.
+
+    prereq_entry can be:
+      - 'CSE 1310'                    → must be in completed
+      - 'IE 3301 or MATH 3313'       → any one must be in completed
+
+    Returns True if satisfied, False if not.
+    Stale/unknown course codes (not in course_map) are treated as satisfied.
+    """
+    if ' or ' in prereq_entry:
+        alternatives = [a.strip() for a in prereq_entry.split(' or ')]
+        # Satisfied if ANY alternative is completed
+        any_in_map = False
+        for alt in alternatives:
+            if alt in completed:
+                return True
+            if alt in course_map:
+                any_in_map = True
+        # If none of the alternatives exist in the course map, treat as satisfied
+        # (stale data — can't block the student on unknown courses)
+        return not any_in_map
+    else:
+        # Single course
+        if prereq_entry in completed:
+            return True
+        if prereq_entry not in course_map:
+            return True  # stale/unknown — skip
+        return False
 
 
 def get_department_courses(department):
@@ -126,11 +172,7 @@ def is_course_eligible(course, completed, course_map):
     prereqs = course.get('pre_requisites', '') or ''
     prereq_list = parse_prereq_string(prereqs)
     for p in prereq_list:
-        if p not in completed:
-            # If the prereq doesn't exist in the course map at all,
-            # skip it — likely a stale/incorrect course code in the data.
-            if p not in course_map:
-                continue
+        if not _is_prereq_met(p, completed, course_map):
             return False
     coreqs = course.get('co_requisites', '') or ''
     coreq_list = parse_prereq_string(coreqs)
@@ -143,9 +185,7 @@ def is_course_eligible(course, completed, course_map):
         co_prereqs = co_course.get('pre_requisites', '') or ''
         co_prereq_list = parse_prereq_string(co_prereqs)
         for p in co_prereq_list:
-            if p not in completed:
-                if p not in course_map:
-                    continue
+            if not _is_prereq_met(p, completed, course_map):
                 return False
     return True
 
@@ -177,6 +217,10 @@ def expand_completed_with_prereqs(normalized_completed, course_map):
             if course:
                 prereqs = course.get('pre_requisites', '') or ''
                 for p in parse_prereq_string(prereqs):
+                    # Skip OR-groups in transitive expansion — we can't know
+                    # which alternative was taken, so don't infer anything.
+                    if ' or ' in p:
+                        continue
                     if p not in expanded:
                         expanded.add(p)
                         changed = True
@@ -328,6 +372,43 @@ def generate_degree_plan(
     # Without this, courses with external prereqs (e.g. CHEM 1441 for EE) get stuck
     # in a "Remaining" deadlock because the prereq is never scheduled.
     # Track already-processed codes to prevent infinite loops on cyclic prereqs.
+    def _inject_external_prereq(prereq_entry, seen_prereqs):
+        """Add an external prereq to remaining if it's not already there.
+        For OR-groups, skip if any alternative is already satisfied."""
+        injected = False
+        if ' or ' in prereq_entry:
+            alternatives = [a.strip() for a in prereq_entry.split(' or ')]
+            # If any alt is completed or in remaining, no need to inject
+            if any(a in normalized_completed or a in remaining for a in alternatives):
+                return False
+            # Pick the first alternative available in the course map
+            for alt in alternatives:
+                if alt not in seen_prereqs:
+                    seen_prereqs.add(alt)
+                    alt_course = merged_map.get(alt)
+                    if alt_course:
+                        remaining[alt] = {
+                            **alt_course,
+                            'requirement_type': 'required',
+                            'elective_group': None,
+                            'elective_hours': None,
+                        }
+                        injected = True
+                        break  # only need one alternative
+        else:
+            if prereq_entry not in seen_prereqs:
+                seen_prereqs.add(prereq_entry)
+                prereq_course = merged_map.get(prereq_entry)
+                if prereq_course:
+                    remaining[prereq_entry] = {
+                        **prereq_course,
+                        'requirement_type': 'required',
+                        'elective_group': None,
+                        'elective_hours': None,
+                    }
+                    injected = True
+        return injected
+
     seen_prereqs = set(remaining.keys()) | normalized_completed
     added = True
     while added:
@@ -335,29 +416,11 @@ def generate_degree_plan(
         for code in list(remaining):
             course = remaining[code]
             for prereq in parse_prereq_string(course.get('pre_requisites', '') or ''):
-                if prereq not in seen_prereqs:
-                    seen_prereqs.add(prereq)
-                    prereq_course = merged_map.get(prereq)
-                    if prereq_course:
-                        remaining[prereq] = {
-                            **prereq_course,
-                            'requirement_type': 'required',
-                            'elective_group': None,
-                            'elective_hours': None,
-                        }
-                        added = True
+                if _inject_external_prereq(prereq, seen_prereqs):
+                    added = True
             for coreq in parse_prereq_string(course.get('co_requisites', '') or ''):
-                if coreq not in seen_prereqs:
-                    seen_prereqs.add(coreq)
-                    coreq_course = merged_map.get(coreq)
-                    if coreq_course:
-                        remaining[coreq] = {
-                            **coreq_course,
-                            'requirement_type': 'required',
-                            'elective_group': None,
-                            'elective_hours': None,
-                        }
-                        added = True
+                if _inject_external_prereq(coreq, seen_prereqs):
+                    added = True
 
     # Filter electives to only include user-chosen ones (if provided and non-empty),
     # or auto-cap to budget per group when not provided / empty
@@ -402,7 +465,13 @@ def generate_degree_plan(
     for code, course in remaining.items():
         prereqs = course.get('pre_requisites', '') or ''
         for p in parse_prereq_string(prereqs):
-            unlock_count[p] = unlock_count.get(p, 0) + 1
+            if ' or ' in p:
+                # Each alternative in an OR group gets partial credit
+                for alt in p.split(' or '):
+                    alt = alt.strip()
+                    unlock_count[alt] = unlock_count.get(alt, 0) + 1
+            else:
+                unlock_count[p] = unlock_count.get(p, 0) + 1
 
     def get_credit_hours(course):
         hrs = course.get('credit_hours', 3)
@@ -418,9 +487,30 @@ def generate_degree_plan(
     planned_completed = set(normalized_completed)
     semesters = []
     semester_num = 0
+    MAX_SEMESTERS = 30  # Safety net: no degree should exceed ~30 semesters
 
     while remaining:
         semester_num += 1
+        if semester_num > MAX_SEMESTERS:
+            # Emergency break — something is wrong; dump remaining as leftover
+            leftover = []
+            for code in list(remaining):
+                c = remaining[code]
+                leftover.append({
+                    'code': code,
+                    'name': c.get('course_name', ''),
+                    'creditHours': get_credit_hours(c),
+                    'requirement': c.get('requirement_type', 'required'),
+                    'electiveGroup': c.get('elective_group'),
+                })
+            if leftover:
+                semesters.append({
+                    'semester': semester_num,
+                    'label': 'Remaining (could not schedule)',
+                    'courses': leftover,
+                    'totalHours': sum(c['creditHours'] for c in leftover),
+                })
+            break
 
         # Find all currently eligible courses from remaining
         eligible = []
@@ -436,9 +526,19 @@ def generate_degree_plan(
             cycle_courses = set()
             for code in remaining:
                 prereqs = parse_prereq_string(remaining[code].get('pre_requisites', '') or '')
-                unmet = [p for p in prereqs if p not in planned_completed and p in remaining]
+                unmet = []
+                for p in prereqs:
+                    if _is_prereq_met(p, planned_completed, merged_map):
+                        continue
+                    # For OR groups, check if any alternative is in remaining
+                    if ' or ' in p:
+                        alts = [a.strip() for a in p.split(' or ')]
+                        if any(a in remaining for a in alts):
+                            unmet.append(p)
+                    elif p in remaining:
+                        unmet.append(p)
                 # All unmet prereqs are in remaining — potential cycle member
-                if unmet and all(p in remaining for p in unmet):
+                if unmet:
                     cycle_courses.add(code)
 
             if cycle_courses:

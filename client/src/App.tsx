@@ -18,12 +18,10 @@ import SemesterPlanView from './components/SemesterPlanView';
 import DashboardLayout from './components/DashboardLayout';
 import DashboardPage from './components/DashboardPage';
 import { getDegreeName, getCollegeName } from './config/colleges';
-import WelcomeBack from './components/WelcomeBack';
 import PlanDegreePage from './components/PlanDegreePage';
 import type { DegreePlan, Course, ElectiveCourse, ElectiveGroup, Student } from './types/PlanDegreePage';
 
-// Use localhost for local development
-const API_URL = 'http://127.0.0.1:8000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 // link to run locally: http://localhost:5173/
 

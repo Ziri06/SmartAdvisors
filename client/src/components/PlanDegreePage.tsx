@@ -4,7 +4,6 @@ import type {
   Course,
   DegreePlan,
   ElectiveCourse,
-  ElectiveGroup,
   PlanDegreePageProps,
   Season,
 } from '../types/PlanDegreePage';
@@ -519,7 +518,6 @@ export default function PlanDegreePage({
                       return sum + (c ? c.creditHours : 0);
                     }, 0);
                     const totalFilled = g.hoursCompleted + selectedHrs;
-                    const pctFilled = g.hoursRequired > 0 ? Math.min(100, Math.round((totalFilled / g.hoursRequired) * 100)) : 100;
                     const isSatisfied = totalFilled >= g.hoursRequired;
                     return (
                       <div key={g.group}>
