@@ -21,6 +21,7 @@ from .scripts.recommendation_engine import (
     normalize_code,
     expand_completed_with_prereqs,
     _build_global_course_map,
+    _is_prereq_met,
 )
 from .scripts.parse_transcript import extract_all_courses
 
@@ -702,7 +703,7 @@ def degree_plan():
             prereq_list = parse_prereq_string(course_row.get('pre_requisites', '') or '')
             missing = []
             for p in prereq_list:
-                if p not in expanded_completed:
+                if not _is_prereq_met(p, expanded_completed, merged_map):
                     missing.append(p)
             return missing
 

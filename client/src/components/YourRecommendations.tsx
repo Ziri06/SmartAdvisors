@@ -492,11 +492,11 @@ function ProfessorSummaryCard({
 
 export default function YourRecommendations({ userData, onBack, onExport }: YourRecommendationsProps) {
   const requiredRaw = useMemo(
-    () => (userData.recommendations || []).filter((c) => c.professors?.length > 0),
+    () => userData.recommendations || [],
     [userData.recommendations]
   );
   const electivesRaw = useMemo(
-    () => (userData.electiveRecommendations || []).filter((c) => c.professors?.length > 0),
+    () => userData.electiveRecommendations || [],
     [userData.electiveRecommendations]
   );
 
@@ -723,109 +723,57 @@ export default function YourRecommendations({ userData, onBack, onExport }: Your
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 scrollbar-themed">
-              {(() => {
-                const electiveGroupsList = userData.electiveGroups || [];
-                // Group electives by type when on electives tab and group data is available
-                const shouldGroup = activeTab === 'electives' && electiveGroupsList.length > 0;
-
-                // Helper to render a single course button
-                const renderCourseBtn = (c: ClassData) => {
-                  const active = c.courseCode === selected.courseCode;
-                  const bar = activeTab === 'required' ? 'var(--blue)' : 'var(--orange)';
-                  const maxPct = Math.max(...c.professors.map((p) => p.matchPercent ?? 0), 0);
-                  const hasTop = c.professors.length > 1;
-                  return (
-                    <button
-                      key={c.courseCode}
-                      type="button"
-                      onClick={() => selectCourse(c.courseCode)}
-                      className={`mb-2 w-full rounded-xl border text-left transition-all duration-200 ${
-                        active ? 'border-[var(--border2)] bg-[var(--s1)]' : 'border-[var(--border)] bg-[var(--bg)] hover:border-[var(--border2)]'
-                      }`}
-                      style={
-                        active
-                          ? { boxShadow: `0 0 20px -6px ${accentGlow}, inset 3px 0 0 0 ${bar}` }
-                          : undefined
-                      }
-                    >
-                      <div className="px-4 py-3">
-                        <div className="flex items-start justify-between gap-2">
-                          <span className="font-heading text-[15px] font-bold text-[var(--text)]">{c.courseCode}</span>
-                          <span
-                            className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold"
-                            style={{
-                              backgroundColor: activeTab === 'required' ? 'rgba(91,124,250,0.15)' : 'rgba(255,107,53,0.15)',
-                              color: bar,
-                            }}
-                          >
-                            {c.professors.length} {c.professors.length === 1 ? 'opt' : 'opts'}
-                          </span>
-                        </div>
-                        <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-[var(--sub)]">{c.courseName}</p>
-                        <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] text-[var(--sub2)]">
-                          <span>{c.creditHours ?? 3} cr</span>
-                          <span className="text-[var(--border2)]">·</span>
-                          <div className="h-[3px] w-10 overflow-hidden rounded-full bg-[var(--sub2)]">
-                            <div className="h-full rounded-full transition-all" style={{ width: `${maxPct}%`, backgroundColor: bar }} />
-                          </div>
-                          <span className="text-[var(--sub)]">{maxPct}% match</span>
-                          {hasTop && (
-                            <>
-                              <span className="text-[var(--border2)]">·</span>
-                              <span className="text-amber-400">★ top</span>
-                            </>
-                          )}
-                        </div>
+              {tabCourses.map((c) => {
+                const active = c.courseCode === selected.courseCode;
+                const bar = activeTab === 'required' ? 'var(--blue)' : 'var(--orange)';
+                const maxPct = Math.max(...c.professors.map((p) => p.matchPercent ?? 0), 0);
+                const hasTop = c.professors.length > 1;
+                return (
+                  <button
+                    key={c.courseCode}
+                    type="button"
+                    onClick={() => selectCourse(c.courseCode)}
+                    className={`mb-2 w-full rounded-xl border text-left transition-all duration-200 ${
+                      active ? 'border-[var(--border2)] bg-[var(--s1)]' : 'border-[var(--border)] bg-[var(--bg)] hover:border-[var(--border2)]'
+                    }`}
+                    style={
+                      active
+                        ? { boxShadow: `0 0 20px -6px ${accentGlow}, inset 3px 0 0 0 ${bar}` }
+                        : undefined
+                    }
+                  >
+                    <div className="px-4 py-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="font-heading text-[15px] font-bold text-[var(--text)]">{c.courseCode}</span>
+                        <span
+                          className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold"
+                          style={{
+                            backgroundColor: activeTab === 'required' ? 'rgba(91,124,250,0.15)' : 'rgba(255,107,53,0.15)',
+                            color: bar,
+                          }}
+                        >
+                          {c.professors.length} {c.professors.length === 1 ? 'opt' : 'opts'}
+                        </span>
                       </div>
-                    </button>
-                  );
-                };
-
-                if (shouldGroup) {
-                  // Render electives grouped by elective_group
-                  const groupOrder = electiveGroupsList.map((g) => g.group);
-                  const grouped: Record<string, ClassData[]> = {};
-                  for (const c of electives) {
-                    const g = c.electiveGroup || 'other';
-                    (grouped[g] ??= []).push(c);
-                  }
-                  // Sort groups by the order from the API, then any extras
-                  const sortedGroups = [
-                    ...groupOrder.filter((g) => grouped[g]?.length),
-                    ...Object.keys(grouped).filter((g) => !groupOrder.includes(g)),
-                  ];
-
-                  return sortedGroups.map((groupName) => {
-                    const groupCourses = grouped[groupName] || [];
-                    const groupInfo = electiveGroupsList.find((g) => g.group === groupName);
-                    const hrsReq = groupInfo?.hoursRequired ?? 0;
-                    const hrsComp = groupInfo?.hoursCompleted ?? 0;
-                    const pct = hrsReq > 0 ? Math.min(100, Math.round((hrsComp / hrsReq) * 100)) : 100;
-                    const label = groupName.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-
-                    return (
-                      <div key={groupName} className="mb-4">
-                        <div className="sticky top-0 z-10 mb-2 rounded-lg border border-[var(--border)] bg-[var(--s1)]/95 px-3 py-2 backdrop-blur-sm">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--orange)]">{label}</span>
-                            <span className="text-[10px] font-semibold text-[var(--sub)]">{hrsComp}/{hrsReq} hrs</span>
-                          </div>
-                          <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-[var(--border)]">
-                            <div
-                              className="h-full rounded-full transition-all"
-                              style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? '#22c55e' : 'var(--orange)' }}
-                            />
-                          </div>
+                      <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-[var(--sub)]">{c.courseName}</p>
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] text-[var(--sub2)]">
+                        <span>{c.creditHours ?? 3} cr</span>
+                        <span className="text-[var(--border2)]">·</span>
+                        <div className="h-[3px] w-10 overflow-hidden rounded-full bg-[var(--sub2)]">
+                          <div className="h-full rounded-full transition-all" style={{ width: `${maxPct}%`, backgroundColor: bar }} />
                         </div>
-                        {groupCourses.map(renderCourseBtn)}
+                        <span className="text-[var(--sub)]">{maxPct}% match</span>
+                        {hasTop && (
+                          <>
+                            <span className="text-[var(--border2)]">·</span>
+                            <span className="text-amber-400">★ top</span>
+                          </>
+                        )}
                       </div>
-                    );
-                  });
-                }
-
-                // Default: flat list (required tab or no group data)
-                return tabCourses.map(renderCourseBtn);
-              })()}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </aside>
 
@@ -886,21 +834,31 @@ export default function YourRecommendations({ userData, onBack, onExport }: Your
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 pb-10 scrollbar-themed md:px-6">
-              <div
-                className="grid auto-rows-max items-start gap-4"
-                style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))' }}
-              >
-                {sortedProfs.map((prof, i) => (
-                  <ProfessorSummaryCard
-                    key={`${selected.courseCode}__${prof.id}__${prof.name}`}
-                    prof={prof}
-                    index={i}
-                    totalInCourse={selected.professors.length}
-                    sortedIndex={i}
-                    onOpen={() => openOverlay(prof, i)}
-                  />
-                ))}
-              </div>
+              {sortedProfs.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="mb-3 text-4xl">📚</div>
+                  <p className="font-heading text-lg font-bold text-[var(--text)]">No professor data available</p>
+                  <p className="mt-2 max-w-sm text-sm text-[var(--sub)]">
+                    This course is eligible for you but we don't have professor ratings in our database yet. Check your university's course catalog for scheduling info.
+                  </p>
+                </div>
+              ) : (
+                <div
+                  className="grid auto-rows-max items-start gap-4"
+                  style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))' }}
+                >
+                  {sortedProfs.map((prof, i) => (
+                    <ProfessorSummaryCard
+                      key={`${selected.courseCode}__${prof.id}__${prof.name}`}
+                      prof={prof}
+                      index={i}
+                      totalInCourse={selected.professors.length}
+                      sortedIndex={i}
+                      onOpen={() => openOverlay(prof, i)}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </main>
         </div>
